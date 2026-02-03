@@ -26,40 +26,37 @@
     "type": "git",
     "url": "git+https://github.com/dafengzhen/runtime-variants.git"
   },
-  "source": "./src/index.ts",
   "files": [
     "dist"
   ],
   "type": "module",
   "types": "./dist/types/index.d.ts",
+  "main": "./dist/cjs/modern/index.js",
+  "module": "./dist/esm/modern/index.js",
   "exports": {
     ".": {
-      "import": {
-        "default": "./dist/esm/modern/index.js"
-      },
-      "require": {
-        "default": "./dist/cjs/modern/index.js"
-      }
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/modern/index.js",
+      "require": "./dist/cjs/modern/index.js",
+      "default": "./dist/esm/modern/index.js"
     },
     "./flags": {
-      "import": {
-        "default": "./dist/esm/modern/flags/index.js"
-      },
-      "require": {
-        "default": "./dist/cjs/modern/flags/index.js"
-      }
+      "import": "./dist/esm/modern/flags/index.js",
+      "require": "./dist/cjs/modern/flags/index.js",
+      "default": "./dist/esm/modern/flags/index.js"
     },
     "./versioned": {
-      "import": {
-        "default": "./dist/esm/modern/versioned/index.js"
-      },
-      "require": {
-        "default": "./dist/cjs/modern/versioned/index.js"
-      }
+      "import": "./dist/esm/modern/versioned/index.js",
+      "require": "./dist/cjs/modern/versioned/index.js",
+      "default": "./dist/esm/modern/versioned/index.js"
     }
   },
   "scripts": {
-    "build": "parcel build",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:modern": "parcel build src/index.ts --target modern-esm --target modern-cjs",
+    "build:legacy": "parcel build src/index.ts --target legacy-esm --target legacy-cjs",
+    "build:dev": "parcel build src/index.ts --target modern-esm-dev --target modern-cjs-dev --target legacy-esm-dev --target legacy-cjs-dev",
+    "build": "npm run build:types && npm run build:modern && npm run build:legacy && npm run build:dev",
     "prepare": "husky install",
     "test": "jest",
     "watch": "parcel watch",
@@ -70,6 +67,7 @@
     "lint:fmt": "npm run lint:fix && npm run fmt"
   },
   "dependencies": {
+    "@dafengzhen/event-bus": "^0.1.7",
     "@swc/helpers": "^0.5.18",
     "browserslist-config-baseline": "^0.5.0"
   },
