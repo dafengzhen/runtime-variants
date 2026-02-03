@@ -1,6 +1,6 @@
 {
   "name": "@dafengzhen/runtime-variants",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Runtime variants engine for feature gating and versioned configuration resolution based on environment, user, experiments, and context.",
   "keywords": [
     "ab-testing",
@@ -30,9 +30,9 @@
     "dist"
   ],
   "type": "module",
-  "types": "./dist/types/index.d.ts",
   "main": "./dist/cjs/modern/index.js",
   "module": "./dist/esm/modern/index.js",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -67,7 +67,6 @@
     "lint:fmt": "npm run lint:fix && npm run fmt"
   },
   "dependencies": {
-    "@dafengzhen/event-bus": "^0.1.7",
     "@swc/helpers": "^0.5.18",
     "browserslist-config-baseline": "^0.5.0"
   },
@@ -78,6 +77,7 @@
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@commitlint/prompt-cli": "^20.4.1",
+    "@dafengzhen/event-bus": "^0.1.7",
     "@jest/globals": "^30.2.0",
     "@parcel/packager-ts": "^2.16.4",
     "@parcel/transformer-typescript-types": "^2.16.4",
@@ -92,6 +92,9 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
+  "peerDependencies": {
+    "@dafengzhen/event-bus": "^0.1.7"
+  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": "npm run lint",
     "*": "npm run fmt --no-error-on-unmatched-pattern"
@@ -102,7 +105,9 @@
       "engines": {
         "browsers": ">0.3%, Chrome >= 87, ChromeAndroid >= 87, Edge >= 87, Firefox >= 83, FirefoxAndroid >= 83, Safari >= 14, iOS >= 14"
       },
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": true,
       "outputFormat": "commonjs",
@@ -113,7 +118,9 @@
       "engines": {
         "browsers": ">0.3%, Chrome >= 87, ChromeAndroid >= 87, Edge >= 87, Firefox >= 83, FirefoxAndroid >= 83, Safari >= 14, iOS >= 14"
       },
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": false,
       "outputFormat": "commonjs",
@@ -124,7 +131,9 @@
       "engines": {
         "browsers": ">0.3%, Chrome >= 87, ChromeAndroid >= 87, Edge >= 87, Firefox >= 83, FirefoxAndroid >= 83, Safari >= 14, iOS >= 14"
       },
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": true,
       "outputFormat": "esmodule",
@@ -135,7 +144,9 @@
       "engines": {
         "browsers": ">0.3%, Chrome >= 87, ChromeAndroid >= 87, Edge >= 87, Firefox >= 83, FirefoxAndroid >= 83, Safari >= 14, iOS >= 14"
       },
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": false,
       "outputFormat": "esmodule",
@@ -143,7 +154,9 @@
     },
     "modern-cjs": {
       "distDir": "./dist/cjs/modern",
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": true,
       "outputFormat": "commonjs",
@@ -151,7 +164,9 @@
     },
     "modern-cjs-dev": {
       "distDir": "./dist/cjs/modern-dev",
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": false,
       "outputFormat": "commonjs",
@@ -159,7 +174,9 @@
     },
     "modern-esm": {
       "distDir": "./dist/esm/modern",
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": true,
       "outputFormat": "esmodule",
@@ -167,7 +184,9 @@
     },
     "modern-esm-dev": {
       "distDir": "./dist/esm/modern-dev",
-      "includeNodeModules": true,
+      "includeNodeModules": {
+        "@dafengzhen/event-bus": false
+      },
       "isLibrary": true,
       "optimize": false,
       "outputFormat": "esmodule",
