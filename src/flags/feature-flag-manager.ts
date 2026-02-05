@@ -1,6 +1,8 @@
-import type { FeatureMap, Gate, FlagEvents, EvalContext } from './types.ts';
-import { compareVersion, hash } from '../utils.ts';
 import { EventBus } from '@dafengzhen/event-bus';
+
+import type { EvalContext, FeatureMap, FlagEvents, Gate } from './types.ts';
+
+import { compareVersion, hash } from '../utils.ts';
 
 /**
  * FeatureFlagManager
@@ -26,15 +28,15 @@ import { EventBus } from '@dafengzhen/event-bus';
  */
 export class FeatureFlagManager<F extends FeatureMap> {
   /**
+   * Event bus for emitting evaluation results.
+   */
+  private readonly bus = new EventBus<FlagEvents>();
+
+  /**
    * Current flags snapshot.
    * Use {@link setFlags} to update partially.
    */
   private flags: F;
-
-  /**
-   * Event bus for emitting evaluation results.
-   */
-  private readonly bus = new EventBus<FlagEvents>();
 
   /**
    * Create a FeatureFlagManager.
@@ -43,24 +45,6 @@ export class FeatureFlagManager<F extends FeatureMap> {
    */
   constructor(flags: F) {
     this.flags = flags;
-  }
-
-  /**
-   * Subscribe to evaluation events.
-   *
-   * @param fn - Callback invoked after each evaluation.
-   */
-  onEvaluate(fn: (e: FlagEvents['evaluated']) => void): void {
-    this.bus.on('evaluated', fn);
-  }
-
-  /**
-   * Merge-in new flags config (partial update).
-   *
-   * @param next - Partial feature flags to merge into current config.
-   */
-  setFlags(next: Partial<F>): void {
-    this.flags = { ...this.flags, ...next } as F;
   }
 
   /**
@@ -113,6 +97,15 @@ export class FeatureFlagManager<F extends FeatureMap> {
   }
 
   /**
+   * Subscribe to evaluation events.
+   *
+   * @param fn - Callback invoked after each evaluation.
+   */
+  onEvaluate(fn: (e: FlagEvents['evaluated']) => void): void {
+    this.bus.on('evaluated', fn);
+  }
+
+  /**
    * Run a callback only when the feature is enabled in the given context.
    *
    * @param key - Feature name key.
@@ -126,6 +119,15 @@ export class FeatureFlagManager<F extends FeatureMap> {
   }
 
   /**
+   * Merge-in new flags config (partial update).
+   *
+   * @param next - Partial feature flags to merge into current config.
+   */
+  setFlags(next: Partial<F>): void {
+    this.flags = { ...this.flags, ...next } as F;
+  }
+
+  /**
    * Emit an evaluation event.
    *
    * @param feature - Feature name.
@@ -133,7 +135,7 @@ export class FeatureFlagManager<F extends FeatureMap> {
    * @param ctx - Evaluation context.
    */
   private emitEvaluated(feature: string, result: boolean, ctx: EvalContext): void {
-    this.bus.emit('evaluated', { feature, result, ctx });
+    this.bus.emit('evaluated', { ctx, feature, result });
   }
 
   /**
@@ -150,55 +152,19 @@ export class FeatureFlagManager<F extends FeatureMap> {
   private evaluateGate(gate: Gate, ctx: EvalContext): boolean {
     switch (gate.type) {
       /**
+       * Custom evaluator.
+       * Delegate to user-provided function.
+       */
+      case 'custom': {
+        return gate.evaluate(ctx);
+      }
+
+      /**
        * Environment allow-list.
        * Passes if `ctx.env` is included in `gate.allow`.
        */
       case 'env': {
         return gate.allow.includes(ctx.env);
-      }
-
-      /**
-       * Semantic version range check.
-       * - If `min` is set, ctx.version must be >= min
-       * - If `max` is set, ctx.version must be <= max
-       */
-      case 'version': {
-        if (gate.min && compareVersion(ctx.version, gate.min) < 0) {
-          return false;
-        }
-        if (gate.max && compareVersion(ctx.version, gate.max) > 0) {
-          return false;
-        }
-        return true;
-      }
-
-      /**
-       * User allow/deny list.
-       * - deny has precedence
-       * - if allow is provided, user must be included
-       * - otherwise passes
-       */
-      case 'user': {
-        const userId = ctx.userId ?? '';
-        if (gate.deny?.includes(userId)) {
-          return false;
-        }
-        if (gate.allow) {
-          return gate.allow.includes(userId);
-        }
-        return true;
-      }
-
-      /**
-       * Percentage rollout by hashing userId into [0..99].
-       * Fail-safe: if userId is missing/empty, do NOT enroll.
-       */
-      case 'percentage': {
-        const userId = ctx.userId;
-        if (!userId) {
-          return false;
-        }
-        return hash(userId) % 100 < gate.value;
       }
 
       /**
@@ -223,11 +189,47 @@ export class FeatureFlagManager<F extends FeatureMap> {
       }
 
       /**
-       * Custom evaluator.
-       * Delegate to user-provided function.
+       * Percentage rollout by hashing userId into [0..99].
+       * Fail-safe: if userId is missing/empty, do NOT enroll.
        */
-      case 'custom': {
-        return gate.evaluate(ctx);
+      case 'percentage': {
+        const userId = ctx.userId;
+        if (!userId) {
+          return false;
+        }
+        return hash(userId) % 100 < gate.value;
+      }
+
+      /**
+       * User allow/deny list.
+       * - deny has precedence
+       * - if allow is provided, user must be included
+       * - otherwise passes
+       */
+      case 'user': {
+        const userId = ctx.userId ?? '';
+        if (gate.deny?.includes(userId)) {
+          return false;
+        }
+        if (gate.allow) {
+          return gate.allow.includes(userId);
+        }
+        return true;
+      }
+
+      /**
+       * Semantic version range check.
+       * - If `min` is set, ctx.version must be >= min
+       * - If `max` is set, ctx.version must be <= max
+       */
+      case 'version': {
+        if (gate.min && compareVersion(ctx.version, gate.min) < 0) {
+          return false;
+        }
+        if (gate.max && compareVersion(ctx.version, gate.max) > 0) {
+          return false;
+        }
+        return true;
       }
 
       default:

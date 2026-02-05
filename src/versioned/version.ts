@@ -1,4 +1,5 @@
 import type { VersionContext, VersionPredicate } from './types.ts';
+
 import { compareVersion } from '../utils.ts';
 
 /**
@@ -49,35 +50,20 @@ export const Version = {
     },
 
   /**
-   * Combines multiple predicates using logical OR.
-   * Returns true if **any** predicate matches.
+   * Matches when the current version falls within the inclusive range:
    *
-   * Predicates are evaluated sequentially and may be async.
+   * `min <= version <= max`
    *
-   * @param predicates - List of predicates to combine.
-   * @returns A new predicate representing the OR condition.
+   * @param min - Minimum version (inclusive).
+   * @param max - Maximum version (inclusive).
+   * @returns Predicate checking version range.
    */
-  or:
-    (...predicates: VersionPredicate[]): VersionPredicate =>
-    async (ctx) => {
-      for (const p of predicates) {
-        if (await p(ctx)) {
-          return true;
-        }
-      }
-      return false;
+  between:
+    (min: string, max: string): VersionPredicate =>
+    (ctx) => {
+      const v = ctx.version;
+      return compareVersion(v, min) >= 0 && compareVersion(v, max) <= 0;
     },
-
-  /**
-   * Negates a predicate using logical NOT.
-   *
-   * @param predicate - Predicate to invert.
-   * @returns A predicate returning the opposite result.
-   */
-  not:
-    (predicate: VersionPredicate): VersionPredicate =>
-    async (ctx) =>
-      !(await predicate(ctx)),
 
   /**
    * Wraps a custom predicate directly.
@@ -90,17 +76,6 @@ export const Version = {
   custom: (predicate: VersionPredicate): VersionPredicate => predicate,
 
   /**
-   * Alias of {@link Version.custom}.
-   *
-   * "match" reads more naturally when used as:
-   * `Version.match(ctx => ...)`.
-   *
-   * @param predicate - Custom predicate implementation.
-   * @returns The same predicate.
-   */
-  match: (predicate: VersionPredicate): VersionPredicate => predicate,
-
-  /**
    * Matches when the context environment equals the specified value.
    *
    * @param env - Target environment (e.g. "prod", "dev").
@@ -110,17 +85,6 @@ export const Version = {
     (env: VersionContext['env']): VersionPredicate =>
     (ctx) =>
       ctx.env === env,
-
-  /**
-   * Matches when the context platform equals the specified platform.
-   *
-   * @param platform - Target platform identifier.
-   * @returns Predicate checking platform equality.
-   */
-  platform:
-    (platform: VersionContext['platform']): VersionPredicate =>
-    (ctx) =>
-      ctx.platform === platform,
 
   /**
    * Matches when the current version is exactly equal to `v`.
@@ -156,6 +120,26 @@ export const Version = {
       compareVersion(ctx.version, v) >= 0,
 
   /**
+   * Matches when the current version equals **any** of the provided versions.
+   *
+   * This is equivalent to:
+   * `Version.or(...versions.map(Version.eq))`
+   *
+   * @param versions - Accepted version list.
+   * @returns Predicate checking version membership.
+   */
+  in:
+    (...versions: string[]): VersionPredicate =>
+    (ctx) => {
+      for (const v of versions) {
+        if (compareVersion(ctx.version, v) === 0) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+  /**
    * Matches when the current version is strictly less than `v`.
    *
    * @param v - Maximum version (exclusive).
@@ -178,38 +162,55 @@ export const Version = {
       compareVersion(ctx.version, v) <= 0,
 
   /**
-   * Matches when the current version falls within the inclusive range:
+   * Alias of {@link Version.custom}.
    *
-   * `min <= version <= max`
+   * "match" reads more naturally when used as:
+   * `Version.match(ctx => ...)`.
    *
-   * @param min - Minimum version (inclusive).
-   * @param max - Maximum version (inclusive).
-   * @returns Predicate checking version range.
+   * @param predicate - Custom predicate implementation.
+   * @returns The same predicate.
    */
-  between:
-    (min: string, max: string): VersionPredicate =>
-    (ctx) => {
-      const v = ctx.version;
-      return compareVersion(v, min) >= 0 && compareVersion(v, max) <= 0;
-    },
+  match: (predicate: VersionPredicate): VersionPredicate => predicate,
 
   /**
-   * Matches when the current version equals **any** of the provided versions.
+   * Negates a predicate using logical NOT.
    *
-   * This is equivalent to:
-   * `Version.or(...versions.map(Version.eq))`
-   *
-   * @param versions - Accepted version list.
-   * @returns Predicate checking version membership.
+   * @param predicate - Predicate to invert.
+   * @returns A predicate returning the opposite result.
    */
-  in:
-    (...versions: string[]): VersionPredicate =>
-    (ctx) => {
-      for (const v of versions) {
-        if (compareVersion(ctx.version, v) === 0) {
+  not:
+    (predicate: VersionPredicate): VersionPredicate =>
+    async (ctx) =>
+      !(await predicate(ctx)),
+
+  /**
+   * Combines multiple predicates using logical OR.
+   * Returns true if **any** predicate matches.
+   *
+   * Predicates are evaluated sequentially and may be async.
+   *
+   * @param predicates - List of predicates to combine.
+   * @returns A new predicate representing the OR condition.
+   */
+  or:
+    (...predicates: VersionPredicate[]): VersionPredicate =>
+    async (ctx) => {
+      for (const p of predicates) {
+        if (await p(ctx)) {
           return true;
         }
       }
       return false;
     },
+
+  /**
+   * Matches when the context platform equals the specified platform.
+   *
+   * @param platform - Target platform identifier.
+   * @returns Predicate checking platform equality.
+   */
+  platform:
+    (platform: VersionContext['platform']): VersionPredicate =>
+    (ctx) =>
+      ctx.platform === platform,
 } as const;

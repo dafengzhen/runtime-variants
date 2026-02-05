@@ -55,6 +55,15 @@ export interface CacheEntry<T> {
 export type MaybePromise<T> = Promise<T> | T;
 
 /**
+ * Convenience helper type that represents all options as required.
+ *
+ * Typically used after applying defaults.
+ *
+ * @template T The target object type being versioned.
+ */
+export type RequiredOptions<T extends object> = Required<VersionedObjectOptions<T>>;
+
+/**
  * Context passed to version predicates and cache key builders.
  *
  * This is the primary input used to decide which rule applies.
@@ -153,6 +162,37 @@ export interface VersionedObjectOptions<_T extends object> {
 }
 
 /**
+ * Canonical error codes used by the versioning system.
+ *
+ * These can be used for programmatic handling and user-friendly messaging.
+ */
+export type VersionErrorCode =
+  /**
+   * An async predicate was provided/encountered in a code path that requires sync predicates.
+   */
+  | 'ASYNC_PREDICATE'
+
+  /**
+   * An async rule value was provided/encountered in a code path that requires sync values.
+   */
+  | 'ASYNC_RULE_VALUE'
+
+  /**
+   * The provided context is invalid (missing required fields, wrong types, etc.).
+   */
+  | 'INVALID_CONTEXT'
+
+  /**
+   * A rule is invalid (missing required properties, malformed shapes, etc.).
+   */
+  | 'INVALID_RULE'
+
+  /**
+   * The provided version string is invalid or cannot be parsed/compared.
+   */
+  | 'INVALID_VERSION';
+
+/**
  * Predicate that decides whether a rule applies for a given context.
  *
  * Some implementations require this predicate to be synchronous. If an async predicate
@@ -211,43 +251,3 @@ export interface VersionRule<T extends object> {
    */
   when: VersionPredicate;
 }
-
-/**
- * Convenience helper type that represents all options as required.
- *
- * Typically used after applying defaults.
- *
- * @template T The target object type being versioned.
- */
-export type RequiredOptions<T extends object> = Required<VersionedObjectOptions<T>>;
-
-/**
- * Canonical error codes used by the versioning system.
- *
- * These can be used for programmatic handling and user-friendly messaging.
- */
-export type VersionErrorCode =
-  /**
-   * An async predicate was provided/encountered in a code path that requires sync predicates.
-   */
-  | 'ASYNC_PREDICATE'
-
-  /**
-   * An async rule value was provided/encountered in a code path that requires sync values.
-   */
-  | 'ASYNC_RULE_VALUE'
-
-  /**
-   * The provided context is invalid (missing required fields, wrong types, etc.).
-   */
-  | 'INVALID_CONTEXT'
-
-  /**
-   * A rule is invalid (missing required properties, malformed shapes, etc.).
-   */
-  | 'INVALID_RULE'
-
-  /**
-   * The provided version string is invalid or cannot be parsed/compared.
-   */
-  | 'INVALID_VERSION';

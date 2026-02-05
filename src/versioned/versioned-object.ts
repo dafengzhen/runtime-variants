@@ -6,6 +6,7 @@ import type {
   VersionedObjectOptions,
   VersionRule,
 } from './types.ts';
+
 import { isPromise, stable } from '../utils.ts';
 
 /**
@@ -27,9 +28,6 @@ export class VersionedObject<T extends object> {
   /** Cache for async resolutions. */
   private readonly asyncCache = new Map<string, AsyncCacheEntry<T>>();
 
-  /** Cache for sync resolutions. */
-  private readonly syncCache = new Map<string, CacheEntry<T>>();
-
   /** Base object (never mutated). */
   private readonly base: T;
 
@@ -38,6 +36,9 @@ export class VersionedObject<T extends object> {
 
   /** Version rules sorted by priority (desc). */
   private readonly rules: readonly VersionRule<T>[];
+
+  /** Cache for sync resolutions. */
+  private readonly syncCache = new Map<string, CacheEntry<T>>();
 
   /**
    * Create a VersionedObject.
@@ -222,32 +223,6 @@ export class VersionedObject<T extends object> {
   }
 
   /**
-   * Default cache key generator: stable JSON stringification of context.
-   *
-   * @param ctx - Context.
-   */
-  private defaultCacheKey(ctx?: VersionContext): string {
-    if (!ctx) {
-      return '__default__';
-    }
-    return JSON.stringify(stable(ctx));
-  }
-
-  /**
-   * Get rule priority (defaults to 0).
-   */
-  private getPriority(r: VersionRule<any>) {
-    return r.priority ?? 0;
-  }
-
-  /**
-   * Sort rules by descending priority.
-   */
-  private ruleSort<T extends object>(a: VersionRule<T>, b: VersionRule<T>) {
-    return this.getPriority(b) - this.getPriority(a);
-  }
-
-  /**
    * Apply rule values asynchronously (shallow merge).
    *
    * @param rules - Matched rules.
@@ -284,6 +259,18 @@ export class VersionedObject<T extends object> {
   }
 
   /**
+   * Default cache key generator: stable JSON stringification of context.
+   *
+   * @param ctx - Context.
+   */
+  private defaultCacheKey(ctx?: VersionContext): string {
+    if (!ctx) {
+      return '__default__';
+    }
+    return JSON.stringify(stable(ctx));
+  }
+
+  /**
    * Normalize context: uses provided ctx or `defaultContext`.
    *
    * @param ctx - Optional context.
@@ -295,6 +282,23 @@ export class VersionedObject<T extends object> {
       throw new Error('Context is required. Provide ctx or defaultContext.');
     }
     return resolved;
+  }
+
+  /**
+   * Read a valid (non-expired) entry from async cache.
+   */
+  private getFromAsyncCache(key: string): AsyncCacheEntry<T> | undefined {
+    const entry = this.asyncCache.get(key);
+    if (!entry) {
+      return;
+    }
+
+    if (Date.now() - entry.timestamp > this.options.cacheTTL) {
+      this.asyncCache.delete(key);
+      return;
+    }
+
+    return entry;
   }
 
   /**
@@ -315,20 +319,10 @@ export class VersionedObject<T extends object> {
   }
 
   /**
-   * Read a valid (non-expired) entry from async cache.
+   * Get rule priority (defaults to 0).
    */
-  private getFromAsyncCache(key: string): AsyncCacheEntry<T> | undefined {
-    const entry = this.asyncCache.get(key);
-    if (!entry) {
-      return;
-    }
-
-    if (Date.now() - entry.timestamp > this.options.cacheTTL) {
-      this.asyncCache.delete(key);
-      return;
-    }
-
-    return entry;
+  private getPriority(r: VersionRule<any>) {
+    return r.priority ?? 0;
   }
 
   /**
@@ -368,6 +362,13 @@ export class VersionedObject<T extends object> {
     }
 
     return matched;
+  }
+
+  /**
+   * Sort rules by descending priority.
+   */
+  private ruleSort<T extends object>(a: VersionRule<T>, b: VersionRule<T>) {
+    return this.getPriority(b) - this.getPriority(a);
   }
 
   /**
